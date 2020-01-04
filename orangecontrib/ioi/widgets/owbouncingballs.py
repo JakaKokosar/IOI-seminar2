@@ -23,22 +23,28 @@ from dominantcolors import find_dominant_colors
 
 from Orange.widgets.utils.concurrent import TaskState, ConcurrentWidgetMixin
 import pygame
+import random
 
 
 class Ball:
 
-    def __init__(self, surface, x, y, color: tuple, radius):
-        self.x = x
-        self.y = y
+    def __init__(self, surface,  color: tuple = None, radius=20):
+        self.x = random.randint(0, 400)
+        self.y = random.randint(0, 400)
         self.radius = radius
-        self.speed = [1, 1]
-        self.color = color
+        self.speed = [5, 5]
+        self.color = color if color is not None else (255, 255, 255)
+        self.radius = radius
 
         self.surface = surface
         self.width = surface.get_width()
         self.height = surface.get_height()
 
         self._ball = self.draw()
+
+    @property
+    def is_active(self):
+        return True if self.color != (255, 255, 255) else False
 
     def draw(self):
         return pygame.draw.circle(self.surface, self.color, (self.x, self.y), self.radius)
@@ -59,39 +65,39 @@ class BouncingBalls:
         # pygame.init()
 
         self.size = self.width, self.height = 680, 480
-        self.speed = [1, 1]
-        self.white = 255, 255, 255
-        self.black = 0, 0, 0
 
         self.surface = pygame.Surface(self.size)
 
-        self._balls = [Ball(self.surface, 0, 0, self.white, 30),
-                       Ball(self.surface, 10, 10, self.white, 30),
-                       Ball(self.surface, 20, 20, self.white, 30)]
+        self.blue = self.create_new_ball()
+        self.green = self.create_new_ball()
 
-        # image = np.zeros((20, 20, 3), dtype='uint8')
-        # image = cv.circle(image, (10, 10), 10, (255, 255, 255), -1)
-        # self.ball = pygame.image.frombuffer(image, image.shape[1::-1], "RGB")
-        # self.ball = pygame.draw.circle(self.surface, self.white, (0, 0), 10)
+    def create_new_ball(self):
+        return Ball(self.surface)
+
+    @property
+    def balls(self):
+        return [self.blue, self.green]
+
+    @property
+    def active_balls(self):
+        return [ball for ball in self.balls if ball.is_active]
 
     def loop(self):
         """ Main loop of the application """
-        self.surface.fill(self.black)
-        for ball in self._balls:
+        self.surface.fill((0, 0, 0))
+        for ball in self.active_balls:
             ball.move()
             ball.draw()
-        # self.ball = pygame.draw.circle(self.surface, self.white, self.ball.center, 20)
-        self.surface.blit(self.surface, (0, 0))
 
 
-class OWAnimation(OWWidget, ConcurrentWidgetMixin):
-    name = "Animation"
+class OWBouncingBalls(OWWidget, ConcurrentWidgetMixin):
+    name = "BouncingBalls"
     icon = "icons/mywidget.svg"
 
     want_main_area = False
 
     class Inputs:
-        colors = Input('Colors', list)
+        bb = Input('BouncingBalls', list)
 
     def __init__(self):
         OWWidget.__init__(self)
@@ -102,31 +108,27 @@ class OWAnimation(OWWidget, ConcurrentWidgetMixin):
         self.animation = BouncingBalls()
         self.timer = QTimer()
         self.timer.timeout.connect(self.pygame_loop)
-        self.timer.start(0)
+        self.timer.start(10)
 
         self.image = None
         self.current_colors = None
 
-        # self.image = None
-        # pygame.init()
-        # # surface = pygame.display.set_mode((640, 480))
-        # # surface = pygame.Surface((640, 480))
-        # surface.fill((64, 128, 192, 224))
-        # pygame.draw.circle(surface, (255, 255, 255, 255), (100, 100), 50)
-        #
-        # w = surface.get_width()
-        # h = surface.get_height()
-        # self.data = surface.get_buffer().raw
-        # self.image = QImage(self.data, w, h, QImage.Format_RGB32)
-
-    @Inputs.colors
+    @Inputs.bb
     def on_input(self, colors):
         self.current_colors = colors
+        (blue, blue_rad), (green, green_rad) = colors
 
-        c1, c2, c3 = colors
-        self.animation._balls[0].color = tuple(c1)
-        self.animation._balls[1].color = tuple(c2)
-        self.animation._balls[2].color = tuple(c3)
+        if blue:
+            self.animation.blue.color = blue
+            self.animation.blue.radius = int(100 * blue_rad)
+        else:
+            self.animation.blue = self.animation.create_new_ball()
+
+        if green:
+            self.animation.green.color = green
+            self.animation.green.radius = int(100 * green_rad)
+        else:
+            self.animation.green = self.animation.create_new_ball()
 
     def pygame_loop(self):
         self.animation.loop()
@@ -164,5 +166,5 @@ class OWAnimation(OWWidget, ConcurrentWidgetMixin):
 
 if __name__ == "__main__":
     from Orange.widgets.utils.widgetpreview import WidgetPreview
-    WidgetPreview(OWAnimation).run()
+    WidgetPreview(OWBouncingBalls).run()
 
