@@ -43,9 +43,9 @@ class Animation:
         self.line_buckets = [self.num_of_lines[x - y: x]
                              for x, y in zip(accumulate(self.length_to_split), self.length_to_split)]
 
-        self.black = (0, 0, 0)
+        self.white = (255, 255, 255)
         self.hist = [0] * len(self.length_to_split)
-        self.centroids = [self.black] * len(self.length_to_split)
+        self.centroids = [self.white] * len(self.length_to_split)
 
     def x(self, t):
         t = radians(t)
